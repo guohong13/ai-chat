@@ -1,49 +1,85 @@
 "use client";
 
-import React from "react";
-import { Box, Container, Typography, Paper, Button } from "@mui/material";
-import { Logout } from "@mui/icons-material";
-import { useAuthStore } from "@/store/authStore";
-import { useRouter } from "next/navigation";
+import React, { useState } from "react";
+import {
+  Box,
+  Drawer,
+  IconButton,
+  useTheme,
+  useMediaQuery,
+} from "@mui/material";
+import { Menu as MenuIcon } from "@mui/icons-material";
 import HydrationProvider from "@/components/HydrationProvider";
+import ChatSidebar from "@/components/ChatSidebar";
+import ChatHeader from "@/components/ChatHeader";
+import ChatMessages from "@/components/ChatMessages";
+import ChatInput from "@/components/ChatInput";
+
+const DRAWER_WIDTH = 320;
 
 export default function ChatPage() {
-  const { user, logout } = useAuthStore();
-  const router = useRouter();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const theme = useTheme();
+  // 只有当侧边栏收起时才显示菜单按钮
+  const showMenuButton = !sidebarOpen;
 
-  const handleLogout = () => {
-    logout();
-    router.push("/auth");
+  const handleSidebarToggle = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  const handleSidebarClose = () => {
+    setSidebarOpen(false);
   };
 
   return (
     <HydrationProvider>
-      <Box sx={{ minHeight: "100vh", bgcolor: "grey.50" }}>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Paper elevation={2} sx={{ p: 4, textAlign: "center" }}>
-            <Typography variant="h4" component="h1" gutterBottom>
-              聊天页面
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-              这里是聊天功能的主页面，正在开发中...
-            </Typography>
+      <Box sx={{ display: "flex", height: "100vh" }}>
+        {/* Sidebar */}
+        <Box
+          component="nav"
+          sx={{
+            width: sidebarOpen ? DRAWER_WIDTH : 0,
+            flexShrink: 0,
+            transition: theme.transitions.create("width", {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
+          }}
+        >
+          {/* Sidebar Content */}
+          <Box
+            sx={{
+              width: DRAWER_WIDTH,
+              height: "100%",
+              display: sidebarOpen ? "block" : "none",
+            }}
+          >
+            <ChatSidebar onClose={handleSidebarClose} />
+          </Box>
+        </Box>
 
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="body2" color="text.secondary">
-                当前用户：{user?.name} ({user?.email})
-              </Typography>
-            </Box>
+        {/* Main Content */}
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            display: "flex",
+            flexDirection: "column",
+            minWidth: 0,
+          }}
+        >
+          {/* Header */}
+          <ChatHeader
+            onMenuClick={handleSidebarToggle}
+            showMenuButton={showMenuButton}
+          />
 
-            <Button
-              variant="outlined"
-              startIcon={<Logout />}
-              onClick={handleLogout}
-              size="medium"
-            >
-              退出登录
-            </Button>
-          </Paper>
-        </Container>
+          {/* Messages */}
+          <ChatMessages />
+
+          {/* Input */}
+          <ChatInput />
+        </Box>
       </Box>
     </HydrationProvider>
   );
