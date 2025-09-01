@@ -17,7 +17,7 @@ import {
   Brightness4 as SystemModeIcon,
   Logout as LogoutIcon,
 } from "@mui/icons-material";
-import { useAuthStore } from "@/store/authStore";
+import { useAuthStore, useThemeStore } from "@/store";
 import { useRouter } from "next/navigation";
 
 interface ChatHeaderProps {
@@ -30,8 +30,8 @@ export default function ChatHeader({
   showMenuButton,
 }: ChatHeaderProps) {
   const { user, logout } = useAuthStore();
+  const { theme, toggleTheme } = useThemeStore();
   const router = useRouter();
-  const [theme, setTheme] = useState<"light" | "dark" | "system">("light");
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const handleLogout = () => {
@@ -46,13 +46,6 @@ export default function ChatHeader({
 
   const handleUserMenuClose = () => {
     setAnchorEl(null);
-  };
-
-  const toggleTheme = () => {
-    const themes: ("light" | "dark" | "system")[] = ["light", "dark", "system"];
-    const currentIndex = themes.indexOf(theme);
-    const nextIndex = (currentIndex + 1) % themes.length;
-    setTheme(themes[nextIndex]);
   };
 
   const getThemeIcon = () => {
@@ -94,6 +87,8 @@ export default function ChatHeader({
         alignItems: "center",
         justifyContent: "space-between",
         minHeight: 32,
+        borderBottom: 1,
+        borderColor: "divider",
       }}
     >
       {/* Left Section */}
