@@ -46,7 +46,7 @@ export default function ChatInput() {
   return (
     <Box
       sx={{
-        bgcolor: "background.paper",
+        bgcolor: "background.default",
         py: 2,
       }}
     >

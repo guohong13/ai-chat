@@ -64,7 +64,16 @@ export const useThemeStore = create<ThemeState>()(
     }),
     {
       name: "theme-storage",
-      partialize: (state) => ({ theme: state.theme }),
+      partialize: (state) => ({
+        theme: state.theme,
+        currentTheme: state.currentTheme,
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          const actualTheme = getActualTheme(state.theme);
+          state.currentTheme = actualTheme;
+        }
+      },
     }
   )
 );
