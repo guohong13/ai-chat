@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { Box } from "@mui/material";
 import HydrationProvider from "@/components/HydrationProvider";
 import { ThemeProvider, useTheme } from "@/hooks/useTheme";
@@ -8,13 +8,47 @@ import ChatSidebar from "@/components/ChatSidebar";
 import ChatHeader from "@/components/ChatHeader";
 import ChatMessages from "@/components/ChatMessages";
 import ChatInput from "@/components/ChatInput";
+import { StreamChat, ChatMessage as ChatMessageType } from "@/lib/streamChat";
 
-const DRAWER_WIDTH = 320;
+const DRAWER_WIDTH = 280;
 
 export default function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [messages, setMessages] = useState<ChatMessageType[]>([]);
+  const [isStreaming, setIsStreaming] = useState(false);
   const { muiTheme } = useTheme();
   const showMenuButton = !sidebarOpen;
+
+  // 创建流式对话实例
+  const [streamChat] = useState(
+    () =>
+      new StreamChat({
+        onMessage: (message) => {
+          setMessages((prev) => {
+            const index = prev.findIndex((m) => m.id === message.id);
+            if (index >= 0) {
+              // 更新现有消息
+              const newMessages = [...prev];
+              newMessages[index] = message;
+              return newMessages;
+            } else {
+              // 添加新消息
+              return [...prev, message];
+            }
+          });
+        },
+        onStreamStart: () => {
+          setIsStreaming(true);
+        },
+        onStreamEnd: () => {
+          setIsStreaming(false);
+        },
+        onError: (error) => {
+          console.error("Stream chat error:", error);
+          setIsStreaming(false);
+        },
+      })
+  );
 
   const handleSidebarToggle = () => {
     setSidebarOpen(!sidebarOpen);
@@ -23,6 +57,37 @@ export default function ChatPage() {
   const handleSidebarClose = () => {
     setSidebarOpen(false);
   };
+
+  const handleSendMessage = useCallback(
+    async (message: string) => {
+      try {
+        await streamChat.startStreaming(message);
+      } catch (error) {
+        console.error("Failed to start streaming:", error);
+      }
+    },
+    [streamChat]
+  );
+
+  const handleStopStreaming = useCallback(() => {
+    streamChat.stopStreaming();
+  }, [streamChat]);
+
+  const handleClearHistory = useCallback(() => {
+    streamChat.clearHistory();
+    setMessages([]);
+  }, [streamChat]);
+
+  const handleNewChat = useCallback(() => {
+    // 处理新建聊天逻辑
+    streamChat.clearHistory();
+    setMessages([]);
+  }, [streamChat]);
+
+  // 初始化时获取消息
+  useEffect(() => {
+    setMessages(streamChat.getMessages());
+  }, [streamChat]);
 
   return (
     <HydrationProvider>
@@ -48,7 +113,12 @@ export default function ChatPage() {
                 display: sidebarOpen ? "block" : "none",
               }}
             >
-              <ChatSidebar onClose={handleSidebarClose} />
+              <ChatSidebar
+                onClose={handleSidebarClose}
+                onClearHistory={handleClearHistory}
+                onNewChat={handleNewChat}
+                messages={messages}
+              />
             </Box>
           </Box>
 
@@ -69,10 +139,15 @@ export default function ChatPage() {
             />
 
             {/* Messages */}
-            <ChatMessages />
+            <ChatMessages messages={messages} sidebarOpen={sidebarOpen} />
 
             {/* Input */}
-            <ChatInput />
+            <ChatInput
+              onSendMessage={handleSendMessage}
+              onStopStreaming={handleStopStreaming}
+              isStreaming={isStreaming}
+              disabled={isStreaming}
+            />
           </Box>
         </Box>
       </ThemeProvider>

@@ -13,16 +13,44 @@ import {
   Send as SendIcon,
   Psychology as PsychologyIcon,
   Search as SearchIcon,
+  Stop as StopIcon,
 } from "@mui/icons-material";
 
-export default function ChatInput() {
+interface ChatInputProps {
+  onSendMessage: (message: string) => void;
+  onStopStreaming?: () => void;
+  isStreaming?: boolean;
+  disabled?: boolean;
+}
+
+export default function ChatInput({
+  onSendMessage,
+  onStopStreaming,
+  isStreaming = false,
+  disabled = false,
+}: ChatInputProps) {
   const [message, setMessage] = useState("");
+  const [deepThinking, setDeepThinking] = useState(false);
+  const [webSearch, setWebSearch] = useState(false);
 
   const handleSend = () => {
-    if (message.trim()) {
-      // 处理发送消息逻辑
-      console.log("Sending message:", message);
+    if (message.trim() && !disabled) {
+      // 构建消息内容，包含选中的功能
+      let finalMessage = message.trim();
+
+      if (deepThinking) {
+        finalMessage += "\n\n请帮我深度思考这个问题，并提供详细的分析和见解。";
+      }
+
+      if (webSearch) {
+        finalMessage += "\n\n请帮我搜索相关信息，并提供最新的资料和参考。";
+      }
+
+      onSendMessage(finalMessage);
       setMessage("");
+      // 发送后重置按钮状态
+      setDeepThinking(false);
+      setWebSearch(false);
     }
   };
 
@@ -34,13 +62,19 @@ export default function ChatInput() {
   };
 
   const handleDeepThinking = () => {
-    // 处理深度思考逻辑
-    console.log("Deep thinking clicked");
+    if (!disabled) {
+      setDeepThinking(!deepThinking);
+    }
   };
 
   const handleWebSearch = () => {
-    // 处理联网搜索逻辑
-    console.log("Web search clicked");
+    if (!disabled) {
+      setWebSearch(!webSearch);
+    }
+  };
+
+  const handleStop = () => {
+    onStopStreaming?.();
   };
 
   return (
@@ -61,7 +95,7 @@ export default function ChatInput() {
           }}
         >
           {/* Text Input */}
-          <Box sx={{ p: 2 }}>
+          <Box sx={{ p: 1 }}>
             <TextField
               multiline
               maxRows={4}
@@ -71,19 +105,9 @@ export default function ChatInput() {
               placeholder="有什么可以帮您？"
               variant="standard"
               fullWidth
+              disabled={disabled}
+              InputProps={{ disableUnderline: true }}
               sx={{
-                "& .MuiInputBase-root": {
-                  border: "none",
-                  "&:before": {
-                    border: "none",
-                  },
-                  "&:after": {
-                    border: "none",
-                  },
-                  "&:hover:not(.Mui-disabled):before": {
-                    border: "none",
-                  },
-                },
                 "& .MuiInputBase-input": {
                   py: 1.5,
                   px: 1,
@@ -114,11 +138,14 @@ export default function ChatInput() {
                 sx={{
                   borderRadius: 2,
                   textTransform: "none",
-                  borderColor: "grey.300",
-                  color: "text.secondary",
-                  "&:hover": {
-                    borderColor: "grey.400",
-                    bgcolor: "grey.50",
+                  borderColor: deepThinking ? "purple.500" : "grey.400",
+                  color: deepThinking ? "purple.500" : "text.secondary",
+                  // 移除点击动画
+                  "&:active": {
+                    transform: "none",
+                  },
+                  "&:focus": {
+                    transform: "none",
                   },
                 }}
               >
@@ -133,11 +160,14 @@ export default function ChatInput() {
                 sx={{
                   borderRadius: 2,
                   textTransform: "none",
-                  borderColor: "grey.300",
-                  color: "text.secondary",
-                  "&:hover": {
-                    borderColor: "grey.400",
-                    bgcolor: "grey.50",
+                  borderColor: webSearch ? "blue.500" : "grey.400",
+                  color: webSearch ? "blue.500" : "text.secondary",
+                  // 移除点击动画
+                  "&:active": {
+                    transform: "none",
+                  },
+                  "&:focus": {
+                    transform: "none",
                   },
                 }}
               >
@@ -145,27 +175,66 @@ export default function ChatInput() {
               </Button>
             </Box>
 
-            {/* Right Side - Send Button */}
+            {/* Right Side - Send/Stop Button */}
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <IconButton
-                onClick={handleSend}
-                disabled={!message.trim()}
-                sx={{
-                  bgcolor: "primary.main",
-                  color: "white",
-                  "&:hover": {
-                    bgcolor: "primary.dark",
-                  },
-                  "&.Mui-disabled": {
-                    bgcolor: "action.disabledBackground",
-                    color: "action.disabled",
-                  },
-                  width: 40,
-                  height: 40,
-                }}
-              >
-                <SendIcon />
-              </IconButton>
+              {isStreaming ? (
+                <IconButton
+                  onClick={handleStop}
+                  sx={{
+                    bgcolor: "error.main",
+                    color: "white",
+                    outline: "none",
+                    "&:focus": { outline: "none" },
+                    "&.Mui-focusVisible": {
+                      outline: "none",
+                      boxShadow: "none",
+                    },
+                    "&:focus-visible": { outline: "none" },
+                    "&:hover": {
+                      bgcolor: "error.dark",
+                    },
+                    // 移除点击动画
+                    "&:active": {
+                      transform: "none",
+                    },
+                    width: 40,
+                    height: 40,
+                  }}
+                >
+                  <StopIcon />
+                </IconButton>
+              ) : (
+                <IconButton
+                  onClick={handleSend}
+                  disabled={!message.trim() || disabled}
+                  sx={{
+                    bgcolor: "primary.main",
+                    color: "white",
+                    outline: "none",
+                    "&:focus": { outline: "none" },
+                    "&.Mui-focusVisible": {
+                      outline: "none",
+                      boxShadow: "none",
+                    },
+                    "&:focus-visible": { outline: "none" },
+                    "&:hover": {
+                      bgcolor: "primary.dark",
+                    },
+                    "&.Mui-disabled": {
+                      bgcolor: "action.disabledBackground",
+                      color: "action.disabled",
+                    },
+                    // 移除点击动画
+                    "&:active": {
+                      transform: "none",
+                    },
+                    width: 40,
+                    height: 40,
+                  }}
+                >
+                  <SendIcon />
+                </IconButton>
+              )}
             </Box>
           </Box>
         </Paper>

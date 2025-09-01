@@ -82,13 +82,11 @@ export default function ChatHeader({
         zIndex: 1000,
         bgcolor: "background.default",
         px: 2,
-        py: 1,
+        py: 2,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         minHeight: 32,
-        borderBottom: 1,
-        borderColor: "divider",
       }}
     >
       {/* Left Section */}
@@ -126,7 +124,7 @@ export default function ChatHeader({
           {getThemeIcon()}
         </IconButton>
 
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, ml: 0.5 }}>
           <IconButton onClick={handleUserMenuClick} sx={{ p: 0 }}>
             <Avatar
               sx={{
