@@ -45,6 +45,25 @@ export default function ChatMessage({ message }: ChatMessageProps) {
           alignItems: isUser ? "flex-end" : "flex-start",
         }}
       >
+        {/* Message Info */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            mb: 1,
+            px: 1,
+          }}
+        >
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontSize: "0.75rem" }}
+          >
+            {message.timestamp}
+          </Typography>
+        </Box>
+
         {/* Message Content */}
         <Paper
           elevation={0}
@@ -117,25 +136,6 @@ export default function ChatMessage({ message }: ChatMessageProps) {
             )}
           </Typography>
         </Paper>
-
-        {/* Message Info */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            mt: 1,
-            px: 1,
-          }}
-        >
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ fontSize: "0.75rem" }}
-          >
-            {message.timestamp}
-          </Typography>
-        </Box>
       </Box>
 
       {/* 用户头像 - 右侧 */}

@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "AI Chat",
-  description: "AI Chat",
+  description: "基于AI的智能聊天应用",
 };
 
 export default function RootLayout({

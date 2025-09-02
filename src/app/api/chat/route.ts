@@ -1,176 +1,176 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(request: NextRequest) {
-  try {
-    const {
-      messages,
-      conversationId, // 添加对话ID支持
-      model = "deepseek-chat",
-      stream: streamEnabled = true,
-    } = await request.json();
+// 配置管理
+const API_CONFIG = {
+  URL:
+    process.env.DEEPSEEK_API_URL ||
+    "https://api.deepseek.com/v1/chat/completions",
+  KEY: process.env.DEEPSEEK_API_KEY,
+  DEFAULT_MODEL: "deepseek-chat",
+  DEFAULT_TEMPERATURE: 0.7,
+  DEFAULT_MAX_TOKENS: 4000,
+};
 
-    console.log("Chat API request:", {
-      conversationId,
-      messagesCount: messages?.length,
-      model,
-      stream: streamEnabled,
-    });
+interface ClientMessage {
+  type: "user" | "assistant";
+  content: string;
+}
 
-    // DeepSeek API配置
-    const DEEPSEEK_API_URL =
-      process.env.DEEPSEEK_API_URL ||
-      "https://api.deepseek.com/v1/chat/completions";
-    const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
+interface DeepSeekMessage {
+  role: "user" | "assistant";
+  content: string;
+}
 
-    if (!DEEPSEEK_API_KEY) {
-      console.error("DeepSeek API key not configured");
-      return NextResponse.json(
-        { error: "DeepSeek API key not configured" },
-        { status: 500 }
-      );
-    }
+interface RequestBody {
+  messages: ClientMessage[];
+  model?: string;
+  temperature?: number;
+  max_tokens?: number;
+}
 
-    // 验证消息格式
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      console.error("Invalid messages format:", messages);
-      return NextResponse.json(
-        { error: "Invalid messages format" },
-        { status: 400 }
-      );
-    }
+// 将客户端消息格式转换为 DeepSeek API 格式
+const formatMessagesForApi = (messages: ClientMessage[]): DeepSeekMessage[] => {
+  return messages.map((msg) => ({
+    role: msg.type === "user" ? "user" : "assistant",
+    content: msg.content,
+  }));
+};
 
-    // 构建请求体
-    const requestBody = {
-      model,
-      messages: messages.map((msg: any) => ({
-        role: msg.type === "user" ? "user" : "assistant",
-        content: msg.content,
-      })),
-      stream: streamEnabled,
-      temperature: 0.7,
-      max_tokens: 4000,
-    };
+// 处理来自 DeepSeek API 的流式响应
+const handleStreamingResponse = (response: Response): ReadableStream => {
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
 
-    console.log("DeepSeek API request:", {
-      url: DEEPSEEK_API_URL,
-      model: requestBody.model,
-      messagesCount: requestBody.messages.length,
-      stream: requestBody.stream,
-    });
+  return new ReadableStream({
+    async start(controller) {
+      if (!response.body) {
+        controller.close();
+        return;
+      }
 
-    // 发起流式请求
-    const response = await fetch(DEEPSEEK_API_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
+      const reader = response.body.getReader();
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("DeepSeek API error:", {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText,
-      });
-      throw new Error(`DeepSeek API error: ${response.status} - ${errorText}`);
-    }
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            break;
+          }
 
-    console.log("DeepSeek API response successful, starting stream");
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n").filter((line) => line.trim() !== "");
 
-    // 返回流式响应
-    const responseStream = new ReadableStream({
-      async start(controller) {
-        const reader = response.body?.getReader();
-        if (!reader) {
-          controller.close();
-          return;
-        }
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6);
+              if (data === "[DONE]") {
+                controller.close();
+                return;
+              }
 
-        let isControllerClosed = false;
-
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunk = new TextDecoder().decode(value);
-            const lines = chunk.split("\n");
-
-            for (const line of lines) {
-              if (line.startsWith("data: ")) {
-                const data = line.slice(6);
-                if (data === "[DONE]") {
-                  console.log("Stream completed");
-                  if (!isControllerClosed) {
-                    controller.close();
-                    isControllerClosed = true;
-                  }
-                  return;
+              try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices?.[0]?.delta?.content;
+                if (content) {
+                  const payload = `data: ${JSON.stringify({ content })}\n\n`;
+                  controller.enqueue(encoder.encode(payload));
                 }
-
-                try {
-                  const parsed = JSON.parse(data);
-                  console.log("Parsed stream data:", parsed);
-
-                  if (parsed.choices?.[0]?.delta?.content) {
-                    const content = parsed.choices[0].delta.content;
-                    console.log("Sending content:", content);
-
-                    // 检查控制器是否已关闭
-                    if (!isControllerClosed) {
-                      try {
-                        controller.enqueue(
-                          new TextEncoder().encode(
-                            `data: ${JSON.stringify({ content })}\n\n`
-                          )
-                        );
-                      } catch (enqueueError) {
-                        console.warn(
-                          "Failed to enqueue content:",
-                          enqueueError
-                        );
-                        isControllerClosed = true;
-                        break;
-                      }
-                    }
-                  }
-                } catch (e) {
-                  console.warn("Failed to parse stream data:", e, data);
-                }
+              } catch (e) {
+                console.warn("无法解析流中的JSON数据:", data);
               }
             }
           }
-        } catch (error) {
-          console.error("Stream error:", error);
-          if (!isControllerClosed) {
-            controller.error(error);
-            isControllerClosed = true;
-          }
-        } finally {
-          reader.releaseLock();
-          if (!isControllerClosed) {
-            controller.close();
-            isControllerClosed = true;
-          }
         }
+      } catch (error) {
+        const errorString = error ? error.toString() : "";
+        if (
+          errorString.includes("AbortError") ||
+          errorString.includes("ResponseAborted")
+        ) {
+          console.log("数据流读取被客户端正常中止。");
+        } else {
+          console.error("读取流时发生错误:", error);
+          controller.error(error);
+        }
+      } finally {
+        reader.releaseLock();
+        controller.close();
+      }
+    },
+  });
+};
+
+export async function POST(request: NextRequest) {
+  // 检查 API Key 是否配置
+  if (!API_CONFIG.KEY) {
+    console.error("DeepSeek API key 未配置");
+    return NextResponse.json(
+      { error: "服务器配置错误，请联系管理员。" },
+      { status: 500 }
+    );
+  }
+
+  try {
+    const {
+      messages,
+      model = API_CONFIG.DEFAULT_MODEL,
+      temperature = API_CONFIG.DEFAULT_TEMPERATURE,
+      max_tokens = API_CONFIG.DEFAULT_MAX_TOKENS,
+    } = (await request.json()) as RequestBody;
+
+    // 验证消息格式
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return NextResponse.json({ error: "无效的消息格式。" }, { status: 400 });
+    }
+
+    const apiRequestBody = {
+      model,
+      messages: formatMessagesForApi(messages),
+      stream: true,
+      temperature,
+      max_tokens,
+    };
+
+    const apiResponse = await fetch(API_CONFIG.URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${API_CONFIG.KEY}`,
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify(apiRequestBody),
+      signal: request.signal, // 将前端请求的取消信号传递给后端请求
     });
+
+    if (!apiResponse.ok) {
+      const errorText = await apiResponse.text();
+      console.error("DeepSeek API 错误:", apiResponse.status, errorText);
+      return NextResponse.json(
+        { error: `上游服务错误: ${errorText}` },
+        { status: apiResponse.status }
+      );
+    }
+
+    const responseStream = handleStreamingResponse(apiResponse);
 
     return new Response(responseStream, {
       headers: {
-        "Content-Type": "text/plain; charset=utf-8",
+        "Content-Type": "text/event-stream; charset=utf-8",
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
       },
     });
   } catch (error) {
-    console.error("Chat API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    const errorString = error ? error.toString() : "";
+    // 当客户端取消请求时，fetch 会抛出 AbortError 或 ResponseAborted，这是正常行为
+    if (
+      errorString.includes("AbortError") ||
+      errorString.includes("ResponseAborted")
+    ) {
+      console.log("请求被客户端中止。");
+      // 返回一个特殊的 499 状态码表示客户端关闭了请求
+      return new Response("Request aborted", { status: 499 });
+    }
+    console.error("Chat API 内部错误:", error);
+    return NextResponse.json({ error: "服务器内部错误。" }, { status: 500 });
   }
 }

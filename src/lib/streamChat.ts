@@ -1,6 +1,6 @@
 export interface ChatMessage {
   id: string;
-  type: "user" | "ai";
+  type: "user" | "assistant";
   content: string;
   timestamp: string;
   isStreaming?: boolean;
@@ -18,7 +18,6 @@ export class StreamChat {
   private isStreaming = false;
   private abortController: AbortController | null = null;
   private options: StreamChatOptions;
-
   constructor(options: StreamChatOptions = {}) {
     this.options = options;
   }
@@ -32,11 +31,11 @@ export class StreamChat {
       throw new Error("Already streaming");
     }
 
-    const userMsg = this.addUserMessage(userMessage);
+    this.addUserMessage(userMessage);
 
     const aiMessage: ChatMessage = {
       id: this.generateId(),
-      type: "ai",
+      type: "assistant",
       content: "",
       timestamp: this.getCurrentTimestamp(),
       isStreaming: true,
@@ -64,10 +63,10 @@ export class StreamChat {
       }
     } finally {
       aiMessage.isStreaming = false;
+      aiMessage.timestamp = this.getCurrentTimestamp();
       this.isStreaming = false;
       this.abortController = null;
       this.options.onStreamEnd?.();
-      this.options.onMessage?.(aiMessage);
     }
   }
 
@@ -136,11 +135,15 @@ export class StreamChat {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
   }
 
-  private getCurrentTimestamp(): string {
+  public getCurrentTimestamp(): string {
     const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, "0");
+    const day = now.getDate().toString().padStart(2, "0");
     const hours = now.getHours().toString().padStart(2, "0");
     const minutes = now.getMinutes().toString().padStart(2, "0");
-    return `${hours}:${minutes}`;
+    const seconds = now.getSeconds().toString().padStart(2, "0");
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   }
 
   private addUserMessage(content: string): ChatMessage {

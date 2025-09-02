@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import {
   Box,
   Button,
@@ -24,81 +24,37 @@ import {
   StarBorder as StarBorderIcon,
   MoreHoriz as MoreHorizIcon,
 } from "@mui/icons-material";
-import { ChatMessage as ChatMessageType } from "@/lib/streamChat";
+
+export interface ConversationItem {
+  id: string;
+  title: string;
+  isActive: boolean;
+  isFavorite: boolean;
+}
 
 interface ChatSidebarProps {
-  onClose?: () => void;
-  onClearHistory?: () => void;
-  onNewChat?: () => void;
-  messages?: ChatMessageType[];
+  conversations: ConversationItem[];
+  onClose: () => void;
+  onNewChat: () => void;
+  onSelectChat: (id: string) => void;
+  onDeleteChat: (id: string) => void;
+  onToggleFavorite: (id: string) => void;
 }
 
 export default function ChatSidebar({
+  conversations,
   onClose,
-  onClearHistory,
   onNewChat,
-  messages: _messages = [],
+  onSelectChat,
+  onDeleteChat,
+  onToggleFavorite,
 }: ChatSidebarProps) {
-  interface ConversationItem {
-    id: string;
-    title: string;
-    timestamp: string;
-    isActive: boolean;
-    isFavorite: boolean;
-  }
-
-  const [conversations, setConversations] = useState<ConversationItem[]>([]);
-  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-
-  const setActiveConversation = (id: string) => {
-    setConversations((prev) =>
-      prev.map((c) => ({ ...c, isActive: c.id === id }))
-    );
-  };
-
-  const handleNewChat = () => {
-    // 处理新建聊天逻辑
-    if (onClearHistory) {
-      onClearHistory();
-    }
-    if (onNewChat) {
-      onNewChat();
-    }
-    const newId = `conversation-${Date.now()}`;
-    const now = new Date();
-    const hours = now.getHours().toString().padStart(2, "0");
-    const minutes = now.getMinutes().toString().padStart(2, "0");
-    const newItem: ConversationItem = {
-      id: newId,
-      title: `对话 ${conversations.length + 1}`,
-      timestamp: `${hours}:${minutes}`,
-      isActive: true,
-      isFavorite: false,
-    };
-    setConversations((prev) => [
-      ...prev.map((c) => ({ ...c, isActive: false })),
-      newItem,
-    ]);
-  };
-
-  const handleChatSelect = (chatId: string) => {
-    setActiveConversation(chatId);
-  };
-
-  const handleDeleteChat = (chatId: string, event: React.MouseEvent) => {
-    event.stopPropagation();
-    setConversations((prev) => prev.filter((c) => c.id !== chatId));
-  };
-
-  const handleToggleFavorite = (chatId: string, event: React.MouseEvent) => {
-    event.stopPropagation();
-    setConversations((prev) =>
-      prev.map((c) =>
-        c.id === chatId ? { ...c, isFavorite: !c.isFavorite } : c
-      )
-    );
-  };
+  const [menuAnchorEl, setMenuAnchorEl] = React.useState<null | HTMLElement>(
+    null
+  );
+  const [selectedChatId, setSelectedChatId] = React.useState<string | null>(
+    null
+  );
 
   const handleMenuOpen = (
     event: React.MouseEvent<HTMLElement>,
@@ -118,13 +74,9 @@ export default function ChatSidebar({
     if (!selectedChatId) return;
 
     if (action === "favorite") {
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.id === selectedChatId ? { ...c, isFavorite: !c.isFavorite } : c
-        )
-      );
+      onToggleFavorite(selectedChatId);
     } else if (action === "delete") {
-      setConversations((prev) => prev.filter((c) => c.id !== selectedChatId));
+      onDeleteChat(selectedChatId);
     }
 
     handleMenuClose();
@@ -157,11 +109,9 @@ export default function ChatSidebar({
         <Typography variant="h6" component="h2" sx={{ fontWeight: 600 }}>
           AI Chat
         </Typography>
-        {onClose && (
-          <IconButton onClick={onClose} size="small">
-            <ChevronLeftIcon />
-          </IconButton>
-        )}
+        <IconButton onClick={onClose} size="small">
+          <ChevronLeftIcon />
+        </IconButton>
       </Box>
 
       {/* New Chat Button */}
@@ -169,7 +119,7 @@ export default function ChatSidebar({
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={handleNewChat}
+          onClick={onNewChat}
           sx={{
             bgcolor: "primary.main",
             color: "white",
@@ -190,7 +140,6 @@ export default function ChatSidebar({
         sx={{
           flexGrow: 1,
           overflow: "auto",
-          // 自定义滚动条样式，与主聊天区域保持一致
           "&::-webkit-scrollbar": {
             width: "6px",
           },
@@ -217,7 +166,7 @@ export default function ChatSidebar({
             {conversations.map((chat) => (
               <ListItem key={chat.id} disablePadding>
                 <ListItemButton
-                  onClick={() => handleChatSelect(chat.id)}
+                  onClick={() => onSelectChat(chat.id)}
                   selected={chat.isActive}
                   sx={{
                     mx: 1,
@@ -244,18 +193,15 @@ export default function ChatSidebar({
                           color: chat.isActive
                             ? "text.primary"
                             : "text.secondary",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
                         }}
                       >
                         {chat.title}
                       </Typography>
                     }
-                    secondary={
-                      <Typography variant="caption" color="text.disabled">
-                        {chat.timestamp}
-                      </Typography>
-                    }
                   />
-                  {/* Action Buttons */}
                   <Box
                     sx={{
                       display: "flex",

@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect } from "react";
 import { Box } from "@mui/material";
 import HydrationProvider from "@/components/HydrationProvider";
 import { ThemeProvider, useTheme } from "@/hooks/useTheme";
-import ChatSidebar from "@/components/ChatSidebar";
+import ChatSidebar, { ConversationItem } from "@/components/ChatSidebar";
 import ChatHeader from "@/components/ChatHeader";
 import ChatMessages from "@/components/ChatMessages";
 import ChatInput from "@/components/ChatInput";
@@ -16,10 +16,10 @@ export default function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const { muiTheme } = useTheme();
   const showMenuButton = !sidebarOpen;
 
-  // 创建流式对话实例
   const [streamChat] = useState(
     () =>
       new StreamChat({
@@ -27,12 +27,10 @@ export default function ChatPage() {
           setMessages((prev) => {
             const index = prev.findIndex((m) => m.id === message.id);
             if (index >= 0) {
-              // 更新现有消息
               const newMessages = [...prev];
               newMessages[index] = message;
               return newMessages;
             } else {
-              // 添加新消息
               return [...prev, message];
             }
           });
@@ -50,6 +48,10 @@ export default function ChatPage() {
       })
   );
 
+  const generateId = () => {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+  };
+
   const handleSidebarToggle = () => {
     setSidebarOpen(!sidebarOpen);
   };
@@ -60,31 +62,56 @@ export default function ChatPage() {
 
   const handleSendMessage = useCallback(
     async (message: string) => {
-      try {
-        await streamChat.startStreaming(message);
-      } catch (error) {
-        console.error("Failed to start streaming:", error);
+      // 如果是新对话（当前没有消息），则创建对话条目
+      if (messages.length === 0) {
+        const newId = generateId();
+        const newItem: ConversationItem = {
+          id: newId,
+          title: message, // 使用第一条消息作为标题
+          isActive: true,
+          isFavorite: false,
+        };
+        setConversations((prev) => [
+          newItem,
+          ...prev.map((c) => ({ ...c, isActive: false })),
+        ]);
       }
+      streamChat.startStreaming(message).catch(() => {});
     },
-    [streamChat]
+    [streamChat, messages]
   );
 
   const handleStopStreaming = useCallback(() => {
     streamChat.stopStreaming();
   }, [streamChat]);
 
-  const handleClearHistory = useCallback(() => {
-    streamChat.clearHistory();
-    setMessages([]);
-  }, [streamChat]);
-
   const handleNewChat = useCallback(() => {
-    // 处理新建聊天逻辑
     streamChat.clearHistory();
     setMessages([]);
+    // 取消所有对话的激活状态
+    setConversations((prev) => prev.map((c) => ({ ...c, isActive: false })));
   }, [streamChat]);
 
-  // 初始化时获取消息
+  const handleSelectChat = useCallback(
+    (id: string) => {
+      handleNewChat(); // 简单起见，切换对话也视为新对话
+      setConversations((prev) =>
+        prev.map((c) => ({ ...c, isActive: c.id === id }))
+      );
+    },
+    [handleNewChat]
+  );
+
+  const handleDeleteChat = useCallback((id: string) => {
+    setConversations((prev) => prev.filter((c) => c.id !== id));
+  }, []);
+
+  const handleToggleFavorite = useCallback((id: string) => {
+    setConversations((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, isFavorite: !c.isFavorite } : c))
+    );
+  }, []);
+
   useEffect(() => {
     setMessages(streamChat.getMessages());
   }, [streamChat]);
@@ -93,7 +120,6 @@ export default function ChatPage() {
     <HydrationProvider>
       <ThemeProvider>
         <Box sx={{ display: "flex", height: "100vh" }}>
-          {/* Sidebar */}
           <Box
             component="nav"
             sx={{
@@ -105,7 +131,6 @@ export default function ChatPage() {
               }),
             }}
           >
-            {/* Sidebar Content */}
             <Box
               sx={{
                 width: DRAWER_WIDTH,
@@ -114,15 +139,16 @@ export default function ChatPage() {
               }}
             >
               <ChatSidebar
+                conversations={conversations}
                 onClose={handleSidebarClose}
-                onClearHistory={handleClearHistory}
                 onNewChat={handleNewChat}
-                messages={messages}
+                onSelectChat={handleSelectChat}
+                onDeleteChat={handleDeleteChat}
+                onToggleFavorite={handleToggleFavorite}
               />
             </Box>
           </Box>
 
-          {/* Main Content */}
           <Box
             component="main"
             sx={{
@@ -132,16 +158,13 @@ export default function ChatPage() {
               minWidth: 0,
             }}
           >
-            {/* Header */}
             <ChatHeader
               onMenuClick={handleSidebarToggle}
               showMenuButton={showMenuButton}
             />
 
-            {/* Messages */}
             <ChatMessages messages={messages} sidebarOpen={sidebarOpen} />
 
-            {/* Input */}
             <ChatInput
               onSendMessage={handleSendMessage}
               onStopStreaming={handleStopStreaming}
