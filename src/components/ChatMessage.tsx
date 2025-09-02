@@ -51,7 +51,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
             display: "flex",
             alignItems: "center",
             gap: 1,
-            mb: 1,
+            mb: 0.5, // Changed from mt: 1 to mb: 0.5 for spacing
             px: 1,
           }}
         >

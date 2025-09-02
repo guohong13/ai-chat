@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import http from "@/lib/request";
 import {
   Box,
   TextField,
@@ -52,7 +53,8 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
     setSuccess("");
 
     try {
-      const response = await fetch("/api/auth/register", {
+      const response = await http.request({
+        url: "/api/auth/register",
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -83,7 +85,8 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
     setError("");
 
     try {
-      const response = await fetch("/api/auth/register", {
+      const response = await http.request({
+        url: "/api/auth/register",
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -116,7 +119,8 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
     setVerificationCode("");
 
     try {
-      const response = await fetch("/api/auth/register", {
+      const response = await http.request({
+        url: "/api/auth/register",
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

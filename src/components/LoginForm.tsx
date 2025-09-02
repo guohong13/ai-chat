@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import http from "@/lib/request";
 import {
   Box,
   TextField,
@@ -75,7 +76,8 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
     setError("");
 
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await http.request({
+        url: "/api/auth/login",
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

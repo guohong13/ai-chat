@@ -33,7 +33,7 @@ export const useThemeStore = create<ThemeState>()(
     (set, get) => ({
       theme: "light",
       currentTheme: "light",
-
+      // Actions
       setTheme: (theme: ThemeMode) => {
         const actualTheme = getActualTheme(theme);
         set({ theme, currentTheme: actualTheme });

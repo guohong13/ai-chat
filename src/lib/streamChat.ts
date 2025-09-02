@@ -1,3 +1,5 @@
+import http from "./request";
+
 export interface ChatMessage {
   id: string;
   type: "user" | "assistant";
@@ -71,7 +73,8 @@ export class StreamChat {
   }
 
   private async streamResponse(aiMessage: ChatMessage): Promise<void> {
-    const response = await fetch("/api/chat", {
+    const response = await http.request({
+      url: "/api/chat",
       method: "POST",
       headers: {
         "Content-Type": "application/json",
