@@ -97,7 +97,7 @@ export default function ChatSidebar({
         zIndex: 1200,
       }}
     >
-      {/* Header */}
+      {/* 头部 */}
       <Box
         sx={{
           p: 2,
@@ -114,7 +114,7 @@ export default function ChatSidebar({
         </IconButton>
       </Box>
 
-      {/* New Chat Button */}
+      {/* 新建对话 */}
       <Box sx={{ p: 1 }}>
         <Button
           variant="contained"
@@ -135,7 +135,7 @@ export default function ChatSidebar({
         </Button>
       </Box>
 
-      {/* Chat History */}
+      {/* 历史对话 */}
       <Box
         sx={{
           flexGrow: 1,
@@ -234,7 +234,7 @@ export default function ChatSidebar({
         )}
       </Box>
 
-      {/* Menu */}
+      {/* 菜单 */}
       <Menu
         anchorEl={menuAnchorEl}
         open={Boolean(menuAnchorEl)}

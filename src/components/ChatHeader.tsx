@@ -82,14 +82,14 @@ export default function ChatHeader({
         zIndex: 1000,
         bgcolor: "background.default",
         px: 2,
-        py: 2,
+        py: 3,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         minHeight: 32,
       }}
     >
-      {/* Left Section */}
+      {/* 菜单按钮 */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         {showMenuButton && (
           <IconButton
@@ -113,7 +113,7 @@ export default function ChatHeader({
         </Typography>
       </Box>
 
-      {/* Right Section */}
+      {/* 右侧按钮 */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <IconButton
           onClick={toggleTheme}

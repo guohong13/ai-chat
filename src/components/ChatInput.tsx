@@ -94,7 +94,6 @@ export default function ChatInput({
             overflow: "hidden",
           }}
         >
-          {/* Text Input */}
           <Box sx={{ p: 1 }}>
             <TextField
               multiline
@@ -117,8 +116,6 @@ export default function ChatInput({
               }}
             />
           </Box>
-
-          {/* Action Buttons Row */}
           <Box
             sx={{
               display: "flex",
@@ -128,7 +125,6 @@ export default function ChatInput({
               pb: 2,
             }}
           >
-            {/* Left Side - Action Buttons */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Button
                 variant="outlined"
@@ -174,8 +170,6 @@ export default function ChatInput({
                 联网搜索
               </Button>
             </Box>
-
-            {/* Right Side - Send/Stop Button */}
             <Box sx={{ display: "flex", alignItems: "center" }}>
               {isStreaming ? (
                 <IconButton

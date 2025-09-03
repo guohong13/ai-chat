@@ -114,7 +114,7 @@ export class StreamChat {
                 this.options.onMessage?.(aiMessage);
               }
             } catch (e) {
-              // 忽略解析错误
+              console.error("解析错误:", e);
             }
           }
         }

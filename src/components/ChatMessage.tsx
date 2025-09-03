@@ -5,6 +5,7 @@ import { Box, Avatar, Typography, Paper } from "@mui/material";
 import { SmartToy as RobotIcon } from "@mui/icons-material";
 import { ChatMessage as ChatMessageType } from "@/lib/streamChat";
 import { useAuthStore } from "@/store";
+import MarkdownRenderer from "./MarkdownRenderer";
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -45,61 +46,78 @@ export default function ChatMessage({ message }: ChatMessageProps) {
           alignItems: isUser ? "flex-end" : "flex-start",
         }}
       >
-        {/* Message Info */}
+        {/* 时间戳 */}
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
             gap: 1,
-            mb: 0.5, // Changed from mt: 1 to mb: 0.5 for spacing
+            mb: 0.5,
             px: 1,
           }}
         >
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ fontSize: "0.75rem" }}
-          >
+          <Typography variant="caption" color="text.secondary">
             {message.timestamp}
           </Typography>
         </Box>
 
-        {/* Message Content */}
-        <Paper
-          elevation={0}
-          sx={{
-            p: 1,
-            bgcolor: isUser ? "primary.main" : "background.paper",
-            color: isUser ? "white" : "text.primary",
-            borderRadius: 3,
-            border: isUser ? "none" : 1,
-            borderColor: "divider",
-            maxWidth: "100%",
-            wordBreak: "break-word",
-            position: "relative",
-          }}
-        >
-          <Typography
-            variant="body1"
-            component="div"
+        {/* 消息内容 */}
+        {isUser ? (
+          <Paper
+            elevation={0}
             sx={{
-              lineHeight: 1.6,
-              whiteSpace: "pre-wrap",
-              "@keyframes fade": {
-                "0%, 100%": { opacity: 0.3 },
-                "50%": { opacity: 1 },
-              },
+              px: 1.5,
+              py: 1,
+              bgcolor: "primary.main",
+              color: "white",
+              borderRadius: 3,
+              maxWidth: "100%",
+              wordBreak: "break-word",
             }}
           >
-            {message.content}
+            <Typography
+              variant="body1"
+              component="div"
+              sx={{
+                lineHeight: 1.6,
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {message.content}
+            </Typography>
+          </Paper>
+        ) : (
+          <Paper
+            elevation={0}
+            sx={{
+              px: 2,
+              py: 1.5,
+              bgcolor: "background.paper",
+              color: "text.primary",
+              borderRadius: 3,
+              border: 1,
+              borderColor: "divider",
+              maxWidth: "100%",
+              wordBreak: "break-word",
+            }}
+          >
+            <MarkdownRenderer isStreaming={message.isStreaming}>
+              {message.content}
+            </MarkdownRenderer>
+            {/* 流式响应 */}
             {message.isStreaming && (
               <Box
                 component="span"
                 sx={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: "3px",
+                  gap: 0.5,
                   ml: 0.5,
+                  pt: 1,
+                  "@keyframes fade": {
+                    "0%, 100%": { opacity: 0.3 },
+                    "50%": { opacity: 1 },
+                  },
                 }}
               >
                 <Box
@@ -134,8 +152,8 @@ export default function ChatMessage({ message }: ChatMessageProps) {
                 />
               </Box>
             )}
-          </Typography>
-        </Paper>
+          </Paper>
+        )}
       </Box>
 
       {/* 用户头像 - 右侧 */}
